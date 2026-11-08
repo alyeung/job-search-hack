@@ -1,0 +1,135 @@
+{
+  "name": "Your Name",
+  "email": "you@example.com",
+  "phone": "555-123-4567",
+  "linkedin": "https://www.linkedin.com/in/yourprofile/",
+  "location": "San Francisco, CA",
+  "target_locations": [
+    "San Francisco Bay Area, CA",
+    "New York, NY",
+    "Remote"
+  ],
+  "target_roles": [
+    "Senior Software Engineer",
+    "Staff Software Engineer",
+    "Machine Learning Engineer"
+  ],
+  "target_domains": [
+    "Artificial Intelligence & Machine Learning",
+    "Distributed Systems & Cloud Infrastructure",
+    "Developer Tools"
+  ],
+  "search_preferences": {
+    "role_title_include_keywords": [
+      "software engineer",
+      "machine learning engineer",
+      "ai engineer",
+      "backend engineer",
+      "systems engineer"
+    ],
+    "role_title_exclude_keywords": [
+      "intern",
+      "recruiter",
+      "account executive",
+      "designer",
+      "marketing"
+    ],
+    "location_keywords": [
+      "san francisco",
+      "bay area",
+      "new york",
+      "nyc",
+      "remote",
+      "united states"
+    ],
+    "target_boards": {
+      "greenhouse": [
+        "anthropic",
+        "stripe",
+        "databricks",
+        "cloudflare",
+        "datadog",
+        "figma"
+      ],
+      "ashby": [
+        "openai",
+        "linear",
+        "ramp",
+        "supabase",
+        "perplexity"
+      ]
+    },
+    "company_tiers": {
+      "tier_1_priority": [
+        "Anthropic",
+        "OpenAI",
+        "Databricks",
+        "Stripe"
+      ],
+      "tier_2_target": [
+        "Cloudflare",
+        "Datadog",
+        "Linear",
+        "Supabase",
+        "Ramp",
+        "Perplexity"
+      ]
+    }
+  },
+  "constraints_and_comp": {
+    "min_base_salary_usd": 180000,
+    "target_base_salary_usd": 220000,
+    "preferred_seniority": [
+      "Senior",
+      "Staff",
+      "Principal",
+      "Lead"
+    ],
+    "dealbreakers": [
+      "Internship or New Grad roles",
+      "Roles requiring relocation outside target cities"
+    ]
+  },
+  "scoring_weights": {
+    "role_and_seniority_fit": 30,
+    "domain_and_technical_fit": 35,
+    "candidate_edge_and_pedigree": 20,
+    "location_and_compensation_fit": 15
+  },
+  "education": [
+    {
+      "school": "Your University",
+      "degree": "BS/MS in Computer Science",
+      "graduation": 2020,
+      "details": "Relevant coursework, fellowships, or leadership activities"
+    }
+  ],
+  "experience_highlights": [
+    {
+      "company": "Current or Recent Company",
+      "title": "Senior Engineer",
+      "years": "2022 - Present",
+      "domain": "Cloud & AI Infrastructure",
+      "highlights": "Describe 2-3 quantified achievements, systems scaled, or products launched (+X% metric)."
+    }
+  ],
+  "core_competencies": [
+    "Distributed Systems & Microservices",
+    "Python, Go, Kubernetes, AWS/GCP",
+    "LLM Applications & Evaluation Pipelines"
+  ],
+  "outreach_and_positioning": {
+    "elevator_pitch": "One-sentence summary of your unique technical/domain background and what makes you stand out.",
+    "alumni_and_network_hooks": [
+      "Your university alumni network",
+      "Notable past companies or open-source communities"
+    ]
+  },
+  "careeros_integration": {
+    "enabled": true,
+    "preferences_url": "https://app.thecareeros.com/app/preferences",
+    "school_portal": "Your University / MBA Career Center",
+    "default_pipeline_stage": "Targeting",
+    "auto_export_job_tracker_csv": true
+  }
+}

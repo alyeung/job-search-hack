@@ -1,0 +1,21 @@
+# Secrets & Environment Variables (NEVER commit)
+.env
+.env.*
+!.env.example
+
+# Python cache & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# OS files
+.DS_Store
+
+# Personal Candidate Profile & Local Agent Outputs (Ignored for public repo privacy)
+candidate_profile.json
+data/*.json
+reports/*.md
+reports/*.csv
