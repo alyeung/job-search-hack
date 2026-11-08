@@ -1,22 +1,50 @@
 """
 Shared Job Fetcher Utilities
-Provides profile-driven role title matching, HTML cleaning, and WA/CA salary extraction.
+Provides profile-driven role title matching, HTML cleaning, prompt-injection sanitization,
+and WA/CA salary extraction.
 """
 
 import html
 import re
 from typing import Dict, List, Optional, Tuple
 
+INJECTION_PATTERNS = [
+    re.compile(r"ignore\s+(all\s+)?(previous|prior)\s+instructions", re.IGNORECASE),
+    re.compile(r"system\s+prompt\s*:", re.IGNORECASE),
+    re.compile(r"you\s+are\s+now\s+in\s+developer\s+mode", re.IGNORECASE),
+    re.compile(r"\brm\s+-rf\s+/", re.IGNORECASE),
+]
+
+
+def _sanitize_untrusted_text(raw_text: str) -> Tuple[str, bool]:
+    """
+    Sanitize scraped external job descriptions (LinkedIn, Greenhouse, Ashby)
+    against prompt injection payloads before passing to any LLM agent.
+    Returns (sanitized_text, injection_detected).
+    """
+    if not raw_text:
+        return "", False
+    # Remove script/style tags if raw HTML is passed
+    cleaned = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", raw_text, flags=re.I | re.S)
+    injection_detected = False
+    for pattern in INJECTION_PATTERNS:
+        if pattern.search(cleaned):
+            injection_detected = True
+            cleaned = pattern.sub("[REDACTED_BY_HARNESS_GUARD]", cleaned)
+    return cleaned, injection_detected
+
 
 def clean_html_text(raw_html: str) -> str:
-    """Convert HTML-encoded job descriptions into clean, readable plain text."""
+    """Convert HTML-encoded job descriptions into clean, sanitized plain text."""
     if not raw_html:
         return ""
-    unescaped = html.unescape(raw_html)
-    # Unescape a second time for double-escaped entities common in Greenhouse APIs
+    sanitized_raw, _ = _sanitize_untrusted_text(raw_html)
+    unescaped = html.unescape(sanitized_raw)
     unescaped = html.unescape(unescaped)
     # Replace block tags with newlines
-    text = re.sub(r"</?(p|div|li|br|ul|ol|h[1-6]|tr)[^>]*>", "\n", unescaped, flags=re.I)
+    text = re.sub(
+        r"</?(p|div|li|br|ul|ol|h[1-6]|tr)[^>]*>", "\n", unescaped, flags=re.I
+    )
     # Strip remaining tags
     text = re.sub(r"<[^>]+>", " ", text)
     # Collapse excessive whitespace
@@ -34,9 +62,9 @@ def extract_salary_band(text: str) -> Tuple[Optional[int], Optional[int], str]:
     if not text:
         return None, None, "Not Disclosed"
 
-    # Match patterns like $190,000 - $260,000 or $190,000—$260,000 USD
+    # Match patterns like $190,000 - $260,000 or $190,000—$260,000 USD or $190,000/yr - $260,000/yr
     range_pattern = re.compile(
-        r"\$\s*([1-9]\d{2}),(\d{3})(?:\.\d{2})?\s*(?:USD)?\s*(?:[-–—]|to)\s*\$\s*([1-9]\d{2}),(\d{3})",
+        r"\$\s*([1-9]\d{2}),(\d{3})(?:\.\d{2})?(?:\s*/\s*yr|\s*USD)?\s*(?:[-–—]|to)\s*\$\s*([1-9]\d{2}),(\d{3})",
         re.IGNORECASE,
     )
     match = range_pattern.search(text)
@@ -46,9 +74,9 @@ def extract_salary_band(text: str) -> Tuple[Optional[int], Optional[int], str]:
         if 60000 <= low <= high <= 1500000:
             return low, high, f"${low:,} - ${high:,}"
 
-    # Match patterns like $190K - $250K
+    # Match patterns like $190K - $250K or $190K/yr - $250K/yr
     k_pattern = re.compile(
-        r"\$\s*([1-9]\d{1,2})\s*[kK]\s*(?:[-–—]|to)\s*\$\s*([1-9]\d{1,2})\s*[kK]"
+        r"\$\s*([1-9]\d{1,2})(?:\.\d+)?\s*[kK](?:\s*/\s*yr)?\s*(?:[-–—]|to)\s*\$\s*([1-9]\d{1,2})(?:\.\d+)?\s*[kK]"
     )
     match_k = k_pattern.search(text)
     if match_k:

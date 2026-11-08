@@ -5,6 +5,7 @@
 
 # Python cache & virtual environments
 __pycache__/
+.pytest_cache/
 *.py[cod]
 *$py.class
 .venv/

@@ -1,87 +1,53 @@
-# Profile-Driven AI Job Search Agent
+# Job Search Agent
 
-An autonomous and interactive AI Job Search Agent that discovers live roles across **Greenhouse** and **Ashby** ATS job boards, parses **WA/CA disclosed salary bands**, evaluates fit using a **weighted 4-dimension rubric**, runs a **Skeptical Hiring Manager Critique**, and drafts **tailored resume bullets + cold outreach messages**.
+This agent automates senior tech job hunting. It pulls live openings from Greenhouse, Ashby, and LinkedIn, scores them against your resume, and writes tailored outreach notes for your top matches.
 
----
+## Why It Exists
 
-## How "Built for Everyone, Customized for You" Works
+Searching job boards by keyword wastes hours. Most results are the wrong level, the wrong location, or below your compensation floor.
 
-The architecture strictly separates **the Agent Engine (Python code)** from **the Candidate Profile (JSON data)**:
+This agent replaces manual board checking with a 4-step workflow:
+1. **Pull live jobs** from Greenhouse, Ashby, and LinkedIn.
+2. **Filter and extract salary bands** posted under Washington and California pay laws.
+3. **Score each role from 0 to 100** based on your target level, domain, location, and pay floor.
+4. **Prepare application assets** for your top 5 matches. This includes likely hiring manager objections, tailored resume bullets, and cold outreach messages.
 
-* **To customize for yourself:** You only ever edit **`candidate_profile.json`**.
-* **For anyone else to use this agent:** They do not touch a single line of Python. They generate or edit their own JSON file from **`candidate_profile.template.json`** and run `python3 main.py --profile their_profile.json`.
+## Built for Anyone, Customized in One File
 
-### What You Can Customize in `candidate_profile.json`
+The Python code contains zero personal information. Everything specific to you lives in `candidate_profile.json`.
 
-| Section in `candidate_profile.json` | Purpose |
-| :--- | :--- |
-| `target_locations`, `target_roles`, `target_domains` | Defines your target cities/remote, seniority/titles, and industry domains. |
-| `search_preferences.role_title_include_keywords` | Keywords a job title must match (e.g., `"product manager"`, `"principal pm"`). |
-| `search_preferences.role_title_exclude_keywords` | Noise titles to reject immediately (e.g., `"intern"`, `"associate product manager"`, `"production"`). |
-| `search_preferences.target_boards` | Lists of company board tokens to scan across `greenhouse` and `ashby`. |
-| `search_preferences.company_tiers` | Groups dream companies into `tier_1_priority` and `tier_2_target` for extra scoring weight. |
-| `constraints_and_comp` | Your `min_base_salary_usd`, `target_base_salary_usd`, `preferred_seniority`, and hard `dealbreakers`. |
-| `scoring_weights` | Customizable weights summing to 100 across `role_and_seniority_fit`, `domain_and_technical_fit`, `candidate_edge_and_pedigree`, and `location_and_compensation_fit`. |
-| `experience_highlights`, `education`, `core_competencies` | Your background evidence used to score jobs and write tailored resume bullet hooks. |
-| `outreach_and_positioning` | Your `elevator_pitch` and `alumni_and_network_hooks` woven into cold outreach drafts. |
+* **To customize for yourself:** Edit `candidate_profile.json`.
+* **To share with someone else:** They run `python3 main.py --init-profile my_profile.json` and edit their own file. They never touch the code.
+* **To sync with CareerOS:** Export or copy your preferences from `https://app.thecareeros.com/app/preferences` into a text file and run `python3 main.py --import-careeros prefs.txt`.
 
----
+## Architecture
+
+The project uses Google Agent Development Kit (`google-adk`) and Antigravity Harness Engineering (`AGENTS.md`, `.agents/skills/`, and `.agents/hooks.json`).
+
+* `job_search_coordinator` (`root_agent`): Orchestrates four specialized subagents:
+  * `discovery_agent`: Searches Greenhouse, Ashby, and LinkedIn and strips untrusted HTML.
+  * `fit_matcher_agent`: Scores roles from 0 to 100 against `candidate_profile.json`.
+  * `tracker_agent`: Saves seen jobs (`data/seen_jobs.json`), CareerOS spreadsheets (`reports/careeros_job_tracker.csv`), and Markdown briefings (`reports/latest_briefing.md`).
+  * `outreach_assistant_agent`: Identifies hiring manager objections and writes resume bullets and outreach notes.
 
 ## Quick Start
 
-### 1. Run Autonomous Agent Mode (Uses `candidate_profile.json`)
 ```bash
-# Run across all configured Greenhouse & Ashby companies
+# 1. Run across specific companies and LinkedIn (takes ~15 seconds)
+python3 main.py --companies anthropic openai databricks stripe cloudflare linear linkedin --top 5
+
+# 2. Run across all companies in your profile
 python3 main.py
 
-# Or run a fast demo across specific companies
-python3 main.py --companies anthropic openai cloudflare databricks stripe --top 5
-```
-
-### 2. Enable Live Google Gemini LLM Reasoning (Optional)
-The agent works out-of-the-box using its profile-driven rubric synthesizer, and automatically upgrades to live **Google Gemini (`gemini-2.5-flash`)** when `GEMINI_API_KEY` is set:
-```bash
-cp .env.example .env
-# Edit .env and paste your GEMINI_API_KEY
-python3 main.py
-```
-
-### 3. Run Interactive Chat Mode
-```bash
+# 3. Chat interactively with the agent in your terminal
 python3 main.py --chat
-```
-Inside chat mode, try:
-* `profile` — inspect active profile & rubric weights
-* `search anthropic openai linear` — run live discovery and scoring
-* `top` — view the ranked leaderboard
-* `explain #1` or `outreach #2` — view Skeptical Hiring Manager critique, tailored bullets, and outreach note
 
-### 4. CareerOS Integration (`https://app.thecareeros.com/app/preferences`)
-University and MBA programs (such as UC Berkeley Haas) use **CareerOS** to manage student preferences, target companies, job tracking boards, and alumni networking.
-
-* **Inbound Sync (CareerOS Preferences $\rightarrow$ `candidate_profile.json`):**
-  ```bash
-  # Sync directly if CAREEROS_BEARER_TOKEN / CAREEROS_SESSION_COOKIE is set in .env
-  python3 main.py --sync-careeros
-
-  # Or copy-paste / save your preferences from https://app.thecareeros.com/app/preferences into a file:
-  python3 main.py --import-careeros my_careeros_prefs.txt
-  ```
-* **Outbound Sync (Agent Matches $\rightarrow$ CareerOS Job Tracker & Alumni Contacts):**
-  Every run automatically generates **`reports/careeros_job_tracker.csv`** and **`data/careeros_sync_payload.json`** with:
-  * Pipeline stage (`Targeting`), fit scores, and disclosed WA/CA salary bands
-  * Pre-built **Alumni & Hiring Manager Contact Search URLs** (filtered by target company + your school from `candidate_profile.json`)
-  * Ready-to-send outreach notes for your CareerOS Contacts CRM
-
-### 5. Onboard Another User (Without Touching Code)
-```bash
-python3 main.py --init-profile classmate_profile.json
-python3 main.py --profile classmate_profile.json
+# 4. Launch the Google ADK Web UI (optional, requires google-adk and GEMINI_API_KEY)
+adk web
 ```
 
----
+## Where to Find Your Results
 
-## Outputs
-* **`reports/latest_briefing.md`** (and dated `reports/job_briefing_YYYY-MM-DD.md`): Full executive Markdown dossier with clickable apply links, salary bands, rubric breakdowns, Skeptical Hiring Manager critiques, tailored resume bullets, and ready-to-send outreach notes.
-* **`data/seen_jobs.json`**: Persistent agent memory tracking previously discovered jobs and scores across runs.
-* **`data/latest_evaluated_jobs.json`**: Full structured JSON output of evaluated matches.
+* `reports/latest_briefing.md`: Ranked leaderboard, salary bands, hiring manager critiques, and outreach drafts.
+* `reports/careeros_job_tracker.csv`: Spreadsheet tracker with LinkedIn alumni search links for each target company.
+* `data/seen_jobs.json`: Memory log so the agent flags newly posted roles on future runs.

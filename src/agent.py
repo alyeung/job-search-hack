@@ -19,6 +19,7 @@ from src.evaluators.fit_evaluator import (
 )
 from src.fetchers.ashby import fetch_ashby_jobs
 from src.fetchers.greenhouse import fetch_greenhouse_jobs
+from src.fetchers.linkedin import fetch_linkedin_jobs
 from src.integrations.careeros import (
     CAREEROS_PREFERENCES_URL,
     export_matches_for_careeros,
@@ -196,7 +197,31 @@ class JobSearchAgent:
             else []
         )
 
-        self.discovered_jobs = gh_jobs + ashby_jobs
+        # Fetch live LinkedIn jobs using the candidate's top target roles and locations
+        li_queries = prefs.get("linkedin_queries") or [
+            f"{role} {self.profile.get('target_domains', [''])[0].split()[0]}".strip()
+            for role in self.profile.get("target_roles", ["Product Manager"])[:2]
+        ]
+        li_locations = [
+            loc
+            for loc in self.profile.get("target_locations", ["Seattle, WA"])
+            if loc.lower() != "remote"
+        ]
+        linkedin_jobs = (
+            fetch_linkedin_jobs(
+                search_queries=li_queries,
+                locations=li_locations,
+                keyword_filter=include_kw,
+                exclude_keywords=exclude_kw,
+                location_filter=loc_kw,
+                max_per_query=5,
+                fetch_details=True,
+            )
+            if not override_companies or "linkedin" in [c.lower() for c in override_companies]
+            else []
+        )
+
+        self.discovered_jobs = gh_jobs + ashby_jobs + linkedin_jobs
         return self.discovered_jobs
 
     # ------------------------------------------------------------------
@@ -403,19 +428,20 @@ class JobSearchAgent:
             f"  └─ Agent Memory:     {len(self.seen_jobs)} previously tracked jobs in '{self.memory_file}'"
         )
 
-        # Step 2: Multi-ATS Discovery
+        # Step 2: Multi-Source Discovery
         print(
-            "\n[Step 2/5 · Tool: discover_live_jobs] Querying Greenhouse & Ashby ATS APIs..."
+            "\n[Step 2/5 · Tool: discover_live_jobs] Querying Greenhouse, Ashby, and LinkedIn..."
         )
         discovered = self.tool_discover_jobs(override_companies=override_companies)
         gh_count = sum(1 for j in discovered if j.get("source") == "greenhouse")
         ashby_count = sum(1 for j in discovered if j.get("source") == "ashby")
+        li_count = sum(1 for j in discovered if j.get("source") == "linkedin")
         sal_disclosed = sum(
             1 for j in discovered if j.get("salary_range") != "Not Disclosed"
         )
         print(
             f"  ├─ Observation: Found {len(discovered)} role & location-matched jobs "
-            f"({gh_count} Greenhouse, {ashby_count} Ashby)."
+            f"({gh_count} Greenhouse, {ashby_count} Ashby, {li_count} LinkedIn)."
         )
         print(
             f"  └─ Pay Transparency Parser: Extracted USD salary bands from {sal_disclosed}/{len(discovered)} postings."
